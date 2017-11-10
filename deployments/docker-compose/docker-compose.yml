@@ -3,6 +3,8 @@ version: '2'
 services:
   docker_monitor:
     build: ../../docker
+    network_mode: host
+    privileged: true
     depends_on:
       - "influxdb"
     volumes:

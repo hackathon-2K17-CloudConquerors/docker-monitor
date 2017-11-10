@@ -43,7 +43,7 @@ func LoadConfiguration() (*Configuration, error) {
 	flag.String("InfluxURL", "", "URI to connect to DB [default: http://influxdb:8086]")
 	flag.Bool("DBSkipTLS", true, "Is valid TLS required for the DB server ? [default: true]")
 
-	flag.Int("PollInterval", 20, "Time interval to poll containers [default: 5m]")
+	flag.Int("PollInterval", 5, "Time interval to poll containers [default: 5m]")
 
 	// Setting up default configuration
 	viper.SetDefault("ListenAddress", ":8080")
@@ -53,7 +53,7 @@ func LoadConfiguration() (*Configuration, error) {
 	viper.SetDefault("InfluxUsername", "aporeto")
 	viper.SetDefault("InfluxPassword", "aporeto")
 	viper.SetDefault("InfluxDBName", "flowDB")
-	viper.SetDefault("InfluxURL", "http://influxdb:8086")
+	viper.SetDefault("InfluxURL", "http://0.0.0.0:8086")
 	viper.SetDefault("DBSkipTLS", true)
 
 	viper.SetDefault("PollInterval", 5)

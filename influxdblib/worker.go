@@ -57,12 +57,10 @@ func (w *worker) processEvent(wevent *workerEvent) {
 		if err := w.doCollectContainerEvent(NGINX); err != nil {
 			zap.L().Error("Couldn't process influxDB Request ContainerRequest", zap.Error(err))
 		}
-
 	case HTTPD:
 		if err := w.doCollectContainerEvent(HTTPD); err != nil {
 			zap.L().Error("Couldn't process influxDB Request FlowRequest", zap.Error(err))
 		}
-
 	case POSTGRES:
 		if err := w.doCollectContainerEvent(POSTGRES); err != nil {
 			zap.L().Error("Couldn't process influxDB Request ContainerRequest", zap.Error(err))
