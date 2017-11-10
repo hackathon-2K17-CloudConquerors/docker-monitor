@@ -12,6 +12,7 @@ import (
 	"github.com/docker-monitor/configuration"
 	"github.com/docker-monitor/constants"
 	"github.com/docker-monitor/influxdblib"
+	"github.com/docker-monitor/monitor"
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/docker/docker/client"
 	"go.uber.org/zap"
@@ -70,9 +71,11 @@ func main() {
 		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
 	}
 
-	go pollNginxContainer(influxInstance, dockerClient, cfg.PollInterval)
-	go pollHttpdContainer(influxInstance, dockerClient, cfg.PollInterval)
-	go pollPostgresContainer(influxInstance, dockerClient, cfg.PollInterval)
+	emailProcessor := monitor.NewEmailProcessor(cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPServer)
+
+	go pollNginxContainer(influxInstance, dockerClient, cfg.PollInterval, emailProcessor)
+	go pollHttpdContainer(influxInstance, dockerClient, cfg.PollInterval, emailProcessor)
+	go pollPostgresContainer(influxInstance, dockerClient, cfg.PollInterval, emailProcessor)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -82,7 +85,7 @@ func main() {
 
 }
 
-func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int) {
+func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.EmailManipulator) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
 		containers, err := dockerClientInstance.ContainerList(context.Background(), types.ContainerListOptions{})
 		if err != nil {
@@ -93,19 +96,23 @@ func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstan
 			fmt.Printf("%s %s\n", container.ID[:10], container.Image)
 		}
 		//influxInstance.CollectContainerEvent(influxdblib.NGINX)
+
 	}
+	return
 }
 
-func pollHttpdContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int) {
+func pollHttpdContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.EmailManipulator) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
 		influxInstance.CollectContainerEvent(influxdblib.HTTPD)
 	}
+	return
 }
 
-func pollPostgresContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int) {
+func pollPostgresContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.EmailManipulator) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
 		influxInstance.CollectContainerEvent(influxdblib.POSTGRES)
 	}
+	return
 }
 
 func initDockerClient(socketType string, socketAddress string) (*dockerClient.Client, error) {

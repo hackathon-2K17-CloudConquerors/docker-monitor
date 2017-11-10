@@ -21,6 +21,11 @@ type Configuration struct {
 
 	PollInterval int
 
+	SMTPUser         string
+	SMTPPassword     string
+	SMTPServer       string
+	RecipientAddress string
+
 	LogFormat string
 	LogLevel  string
 }
@@ -45,23 +50,33 @@ func LoadConfiguration() (*Configuration, error) {
 
 	flag.Int("PollInterval", 5, "Time interval to poll containers [default: 5m]")
 
+	flag.String("SMTPUser", "", "Username to connect to SMTP server [default: sibi]")
+	flag.String("SMTPPassword", "", "Password to connect to SMTP server [default: sibi]")
+	flag.String("SMTPServer", "", "SMTP server to send email")
+	flag.String("RecipientAddress", "", "email of the receiver")
+
 	// Setting up default configuration
 	viper.SetDefault("ListenAddress", ":8080")
 	viper.SetDefault("LogLevel", "info")
 	viper.SetDefault("LogFormat", "human")
 
-	viper.SetDefault("InfluxUsername", "aporeto")
-	viper.SetDefault("InfluxPassword", "aporeto")
-	viper.SetDefault("InfluxDBName", "flowDB")
+	viper.SetDefault("InfluxUsername", "sibi")
+	viper.SetDefault("InfluxPassword", "sibi")
+	viper.SetDefault("InfluxDBName", "containers")
 	viper.SetDefault("InfluxURL", "http://influxdb:8086")
 	viper.SetDefault("DBSkipTLS", true)
 
 	viper.SetDefault("PollInterval", 5)
 
+	viper.SetDefault("SMTPUser", "cloudconquerors@gmail.com")
+	viper.SetDefault("SMTPPassword", "sibicramesh")
+	viper.SetDefault("SMTPServer", "smtp.gmail.com:587")
+	viper.SetDefault("RecipientAddress", "cloudconquerors@gmail.com")
+
 	// Binding ENV variables
-	// Each config will be of format TRIREME_XYZ as env variable, where XYZ
+	// Each config will be of format MONITOR_XYZ as env variable, where XYZ
 	// is the upper case config.
-	viper.SetEnvPrefix("TRIREME")
+	viper.SetEnvPrefix("MONITOR")
 	viper.AutomaticEnv()
 
 	// Binding CLI flags.
