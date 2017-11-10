@@ -1,0 +1,36 @@
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  creationTimestamp: null
+  labels:
+    app: CloudConquerors-postgres
+  name: CloudConquerors-postgres
+  namespace: kube-system
+spec:
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: CloudConquerors-postgres
+    spec:
+      containers:
+      - image: postgres:latest
+        imagePullPolicy: Always
+        name: CloudConquerors-postgres
+        resources: {}
+status:
+  replicas: 0
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: postgres
+  namespace: kube-system
+spec:
+  selector:
+    app: CloudConquerors-postgres
+  ports:
+    - protocol: TCP
+      name: port2
+      port: 8086
+      targetPort: 8086

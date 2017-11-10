@@ -1,0 +1,29 @@
+version: '2'
+
+services:
+  docker_monitor:
+    build: ../../docker
+    depends_on:
+      - "influxdb"
+    volumes:
+      - /var/lib/dockermonitor
+  influxdb:
+    image: influxdb:latest
+    ports:
+      - "8083:8083"
+      - "8086:8086"
+      - "25826:25826/udp"
+    volumes:
+      - /var/lib/influxdb
+  nginx:
+    image: nginx:latest
+    volumes:
+      - /var/lib/nginx
+  httpd:
+    image: httpd:latest
+    volumes:
+      - /var/lib/httpd
+  postgres:
+    image: postgres:latest
+    volumes:
+      - /var/lib/postgres
