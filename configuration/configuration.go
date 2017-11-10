@@ -53,7 +53,7 @@ func LoadConfiguration() (*Configuration, error) {
 	viper.SetDefault("InfluxUsername", "aporeto")
 	viper.SetDefault("InfluxPassword", "aporeto")
 	viper.SetDefault("InfluxDBName", "flowDB")
-	viper.SetDefault("InfluxURL", "http://0.0.0.0:8086")
+	viper.SetDefault("InfluxURL", "http://influxdb:8086")
 	viper.SetDefault("DBSkipTLS", true)
 
 	viper.SetDefault("PollInterval", 5)

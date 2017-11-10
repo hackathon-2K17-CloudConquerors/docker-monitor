@@ -70,9 +70,9 @@ func main() {
 		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
 	}
 
-	go pollNginxContainer(influxInstance, cfg.PollInterval)
-	go pollHttpdContainer(influxInstance, cfg.PollInterval)
-	go pollPostgresContainer(influxInstance, cfg.PollInterval)
+	go pollNginxContainer(influxInstance, dockerClient, cfg.PollInterval)
+	go pollHttpdContainer(influxInstance, dockerClient, cfg.PollInterval)
+	go pollPostgresContainer(influxInstance, dockerClient, cfg.PollInterval)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -82,19 +82,27 @@ func main() {
 
 }
 
-func pollNginxContainer(influxInstance *influxdblib.Influxdb, interval int) {
+func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
-		influxInstance.CollectContainerEvent(influxdblib.NGINX)
+		containers, err := dockerClientInstance.ContainerList(context.Background(), types.ContainerListOptions{})
+		if err != nil {
+			log.Fatal("Error retrieving docker client", err)
+		}
+
+		for _, container := range containers {
+			fmt.Printf("%s %s\n", container.ID[:10], container.Image)
+		}
+		//influxInstance.CollectContainerEvent(influxdblib.NGINX)
 	}
 }
 
-func pollHttpdContainer(influxInstance *influxdblib.Influxdb, interval int) {
+func pollHttpdContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
 		influxInstance.CollectContainerEvent(influxdblib.HTTPD)
 	}
 }
 
-func pollPostgresContainer(influxInstance *influxdblib.Influxdb, interval int) {
+func pollPostgresContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
 		influxInstance.CollectContainerEvent(influxdblib.POSTGRES)
 	}
