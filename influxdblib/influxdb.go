@@ -131,20 +131,27 @@ func (d *Influxdb) AddData(tags map[string]string, fields map[string]interface{}
 		return fmt.Errorf("Couldn't add data, error creating batchpoint: %s", err)
 	}
 
-	if tags["ContainerName"] == NGINX {
+	switch tags["ContainerName"] {
+	case NGINX:
 		pt, err := client.NewPoint("NginxContainerEvents", tags, fields, time.Now())
 		if err != nil {
 			return fmt.Errorf("Couldn't add ContainerEvent: %s", err)
 		}
 		bp.AddPoint(pt)
-	} else if tags["ContainerName"] == HTTPD {
+	case HTTPD:
 		pt, err := client.NewPoint("HttpdContainerEvents", tags, fields, time.Now())
 		if err != nil {
 			return fmt.Errorf("Couldn't add FlowEvent: %s", err)
 		}
 		bp.AddPoint(pt)
-	} else if tags["ContainerName"] == POSTGRES {
+	case POSTGRES:
 		pt, err := client.NewPoint("PostgresContainerEvents", tags, fields, time.Now())
+		if err != nil {
+			return fmt.Errorf("Couldn't add FlowEvent: %s", err)
+		}
+		bp.AddPoint(pt)
+	case UNKNOWN:
+		pt, err := client.NewPoint("UnknownContainerEvents", tags, fields, time.Now())
 		if err != nil {
 			return fmt.Errorf("Couldn't add FlowEvent: %s", err)
 		}
@@ -159,11 +166,12 @@ func (d *Influxdb) AddData(tags map[string]string, fields map[string]interface{}
 }
 
 // CollectContainerEvent implements trireme collector interface
-func (d *Influxdb) CollectContainerEvent(containerName string) {
+func (d *Influxdb) CollectContainerEvent(container *Container) {
 	d.Lock()
 	d.worker.addEvent(
 		&workerEvent{
-			container: containerName,
+			containerName: container.ContainerName,
+			container:     container,
 		},
 	)
 	d.Unlock()

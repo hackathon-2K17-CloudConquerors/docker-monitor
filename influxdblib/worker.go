@@ -15,7 +15,8 @@ type worker struct {
 
 // a workerEvent is an event that the worker need to process
 type workerEvent struct {
-	container string
+	containerName string
+	container     *Container
 }
 
 func newWorker(stop chan struct{}, db DataAdder) *worker {
@@ -51,41 +52,48 @@ func (w *worker) startWorker() {
 
 func (w *worker) processEvent(wevent *workerEvent) {
 	zap.L().Debug("Processing event for InfluxDB")
-	fmt.Println("ProcessEvent")
-	switch wevent.container {
+	switch wevent.containerName {
 	case NGINX:
-		if err := w.doCollectContainerEvent(NGINX); err != nil {
+		if err := w.doCollectContainerEvent(NGINX, wevent.container); err != nil {
 			zap.L().Error("Couldn't process influxDB Request ContainerRequest", zap.Error(err))
 		}
 	case HTTPD:
-		if err := w.doCollectContainerEvent(HTTPD); err != nil {
+		if err := w.doCollectContainerEvent(HTTPD, wevent.container); err != nil {
 			zap.L().Error("Couldn't process influxDB Request FlowRequest", zap.Error(err))
 		}
 	case POSTGRES:
-		if err := w.doCollectContainerEvent(POSTGRES); err != nil {
+		if err := w.doCollectContainerEvent(POSTGRES, wevent.container); err != nil {
+			zap.L().Error("Couldn't process influxDB Request ContainerRequest", zap.Error(err))
+		}
+	default:
+		if err := w.doCollectContainerEvent(UNKNOWN, wevent.container); err != nil {
 			zap.L().Error("Couldn't process influxDB Request ContainerRequest", zap.Error(err))
 		}
 	}
 }
 
 // CollectContainerEvent implements trireme collector interface
-func (w *worker) doCollectContainerEvent(containerType string) error {
-	var container string
+func (w *worker) doCollectContainerEvent(containerType string, container *Container) error {
+	var containerName string
 
 	switch containerType {
 	case NGINX:
-		container = NGINX
+		containerName = NGINX
 	case HTTPD:
-		container = HTTPD
+		containerName = HTTPD
 	case POSTGRES:
-		container = POSTGRES
+		containerName = POSTGRES
+	case UNKNOWN:
+		containerName = UNKNOWN
 	default:
 		return fmt.Errorf("Unrecognized container event name %s ", containerType)
 	}
-	fmt.Println("AddEvent")
+
 	return w.db.AddData(map[string]string{
-		"ContainerName": container,
+		"ContainerName": containerName,
 	}, map[string]interface{}{
-		"ContainerID": "dummy",
+		"ContainerID": container.ContainerID,
+		"ImageName":   container.ImageName,
+		"Status":      container.Status,
 	})
 }

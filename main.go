@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/docker-monitor/monitor"
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/docker/docker/client"
+	"github.com/rs/cors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -22,13 +25,12 @@ import (
 func banner(version, revision string) {
 	fmt.Printf(`
 
-
-	  _____     _
-	 |_   _| __(_)_ __ ___ _ __ ___   ___
-	   | || '__| | '__/ _ \ '_'' _ \ / _ \
-	   | || |  | | | |  __/ | | | | |  __/
-	   |_||_|  |_|_|  \___|_| |_| |_|\___|
-		STATISTICS
+         _                                                                                 _    _
+        | |   ____    ____   _   _    ___    __ ___           _ _______    ____   _____   (_)  | |__    ____    __ ___
+     __ | |  / __ \  /  __| / | / /  / __ \ |  '___|         | /__  __ \  / __ \  | __ \  | |  | ___|  / __ \  |  '___|
+    / _|| | / /  \ | | /    | |/ /  |  __ / | |       ___    | | | | | | / /  \ | | | | | | |  | |    / /  \ | | |
+   | |_ | | | \__/ | | \__  |  _ \  | \___  | |      |___|   | | | | | | | \__/ | | | | | | |  | |__  | \__/ | | |
+   \_____ /  \____/  \____| \_| \_\  \____| |_|              |_| |_| |_|  \____/  |_| |_| |_|  \____|  \____/  |_|
 
 _______________________________________________________________
              %s - %s
@@ -38,12 +40,14 @@ _______________________________________________________________
 }
 
 func main() {
+
+	banner("hi", "hi")
 	cfg, err := configuration.LoadConfiguration()
 	if err != nil {
 		log.Fatal("Error parsing configuration", err)
 	}
 
-	err = setLogs(cfg.LogFormat, "debug")
+	err = setLogs(cfg.LogFormat, cfg.LogLevel)
 	if err != nil {
 		log.Fatalf("Error setting up logs: %s", err)
 	}
@@ -62,20 +66,18 @@ func main() {
 		log.Fatal("Error initializing docker client", err)
 	}
 
-	containers, err := dockerClient.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
-		log.Fatal("Error retrieving docker client", err)
-	}
+	monitorInstance := monitor.NewMonitor(cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPServer, influxInstance, cfg.InfluxDBName, cfg.SMTPUser, cfg.RecipientAddress)
 
-	for _, container := range containers {
-		fmt.Printf("%s %s\n", container.ID[:10], container.Image)
-	}
+	go pollNginxContainer(influxInstance, dockerClient, cfg.PollInterval, monitorInstance)
+	go pollHttpdContainer(influxInstance, dockerClient, cfg.PollInterval, monitorInstance)
+	go pollPostgresContainer(influxInstance, dockerClient, cfg.PollInterval, monitorInstance)
 
-	emailProcessor := monitor.NewEmailProcessor(cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPServer)
-
-	go pollNginxContainer(influxInstance, dockerClient, cfg.PollInterval, emailProcessor)
-	go pollHttpdContainer(influxInstance, dockerClient, cfg.PollInterval, emailProcessor)
-	go pollPostgresContainer(influxInstance, dockerClient, cfg.PollInterval, emailProcessor)
+	go func() {
+		err := startMonitorServer(cfg.ListenAddress, monitorInstance)
+		if err != nil {
+			zap.L().Fatal("Error: Connecting to GraphServer", zap.Error(err))
+		}
+	}()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -85,34 +87,130 @@ func main() {
 
 }
 
-func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.EmailManipulator) {
-	for range time.Tick(time.Second * time.Duration(interval)) {
+func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.MonitorManipulator) {
+	for range time.Tick(time.Second * time.Duration(10)) {
+		var isNginxRunning bool
 		containers, err := dockerClientInstance.ContainerList(context.Background(), types.ContainerListOptions{})
 		if err != nil {
 			log.Fatal("Error retrieving docker client", err)
 		}
 
 		for _, container := range containers {
-			fmt.Printf("%s %s\n", container.ID[:10], container.Image)
+			if strings.Contains(container.Image, influxdblib.NGINX) {
+				isNginxRunning = true
+				influxInstance.CollectContainerEvent(&influxdblib.Container{
+					ContainerName: influxdblib.NGINX,
+					ContainerID:   container.ID[:10],
+					ImageName:     container.Image,
+					Status:        influxdblib.ContainerStart,
+				})
+			} else {
+				influxInstance.CollectContainerEvent(&influxdblib.Container{
+					ContainerID: container.ID[:10],
+					ImageName:   container.Image,
+					Status:      influxdblib.ContainerStart,
+				})
+			}
 		}
-		//influxInstance.CollectContainerEvent(influxdblib.NGINX)
 
+		if !isNginxRunning {
+			influxInstance.CollectContainerEvent(&influxdblib.Container{
+				ContainerName: influxdblib.NGINX,
+				Status:        influxdblib.ContainerStop,
+			})
+		}
 	}
 	return
 }
 
-func pollHttpdContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.EmailManipulator) {
+func pollHttpdContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.MonitorManipulator) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
-		influxInstance.CollectContainerEvent(influxdblib.HTTPD)
+		var isHttpdRunning bool
+		containers, err := dockerClientInstance.ContainerList(context.Background(), types.ContainerListOptions{})
+		if err != nil {
+			log.Fatal("Error retrieving docker client", err)
+		}
+
+		for _, container := range containers {
+			if strings.Contains(container.Image, influxdblib.HTTPD) {
+				isHttpdRunning = true
+				influxInstance.CollectContainerEvent(&influxdblib.Container{
+					ContainerName: influxdblib.HTTPD,
+					ContainerID:   container.ID[:10],
+					ImageName:     container.Image,
+					Status:        influxdblib.ContainerStart,
+				})
+			} else {
+				influxInstance.CollectContainerEvent(&influxdblib.Container{
+					ContainerID: container.ID[:10],
+					ImageName:   container.Image,
+					Status:      influxdblib.ContainerStart,
+				})
+			}
+		}
+
+		if !isHttpdRunning {
+			influxInstance.CollectContainerEvent(&influxdblib.Container{
+				ContainerName: influxdblib.HTTPD,
+				Status:        influxdblib.ContainerStop,
+			})
+		}
 	}
 	return
 }
 
-func pollPostgresContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.EmailManipulator) {
+func pollPostgresContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.MonitorManipulator) {
 	for range time.Tick(time.Second * time.Duration(interval)) {
-		influxInstance.CollectContainerEvent(influxdblib.POSTGRES)
+		var isPostgresRunning bool
+		containers, err := dockerClientInstance.ContainerList(context.Background(), types.ContainerListOptions{})
+		if err != nil {
+			log.Fatal("Error retrieving docker client", err)
+		}
+
+		for _, container := range containers {
+			if strings.Contains(container.Image, influxdblib.POSTGRES) {
+				isPostgresRunning = true
+				influxInstance.CollectContainerEvent(&influxdblib.Container{
+					ContainerName: influxdblib.POSTGRES,
+					ContainerID:   container.ID[:10],
+					ImageName:     container.Image,
+					Status:        influxdblib.ContainerStart,
+				})
+			} else {
+				influxInstance.CollectContainerEvent(&influxdblib.Container{
+					ContainerID: container.ID[:10],
+					ImageName:   container.Image,
+					Status:      influxdblib.ContainerStart,
+				})
+			}
+		}
+
+		if !isPostgresRunning {
+			influxInstance.CollectContainerEvent(&influxdblib.Container{
+				ContainerName: influxdblib.POSTGRES,
+				Status:        influxdblib.ContainerStop,
+			})
+		}
 	}
 	return
+}
+
+func startMonitorServer(listenAddress string, monitor monitor.MonitorManipulator) error {
+	mux := http.NewServeMux()
+
+	go monitor.StartMonitor(10)
+
+	//mux.HandleFunc("/", monitor.StartContainer)
+
+	handler := cors.Default().Handler(mux)
+
+	err := http.ListenAndServe(listenAddress, handler)
+	if err != nil {
+		return fmt.Errorf("ListenAndServe: %s", err)
+	}
+
+	zap.L().Info("Server Listening at", zap.Any("port", listenAddress))
+	return nil
 }
 
 func initDockerClient(socketType string, socketAddress string) (*dockerClient.Client, error) {

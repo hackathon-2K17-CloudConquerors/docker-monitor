@@ -19,7 +19,8 @@ type Configuration struct {
 	InfluxURL      string
 	DBSkipTLS      bool
 
-	PollInterval int
+	PollInterval    int
+	MonitorInterval int
 
 	SMTPUser         string
 	SMTPPassword     string
@@ -49,6 +50,7 @@ func LoadConfiguration() (*Configuration, error) {
 	flag.Bool("DBSkipTLS", true, "Is valid TLS required for the DB server ? [default: true]")
 
 	flag.Int("PollInterval", 5, "Time interval to poll containers [default: 5m]")
+	flag.Int("MonitorInterval", 5, "Time interval to watch for stopped containers [default: 5m]")
 
 	flag.String("SMTPUser", "", "Username to connect to SMTP server [default: sibi]")
 	flag.String("SMTPPassword", "", "Password to connect to SMTP server [default: sibi]")
@@ -67,6 +69,7 @@ func LoadConfiguration() (*Configuration, error) {
 	viper.SetDefault("DBSkipTLS", true)
 
 	viper.SetDefault("PollInterval", 5)
+	viper.SetDefault("MonitorInterval", 5)
 
 	viper.SetDefault("SMTPUser", "cloudconquerors@gmail.com")
 	viper.SetDefault("SMTPPassword", "sibicramesh")
