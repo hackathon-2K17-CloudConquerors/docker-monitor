@@ -1,8 +1,5 @@
-VERSION_FILE := ./version/version.go
 PROJECT_NAME := docker-monitor
 BUILD_NUMBER := latest
-VERSION := 0.11
-REVISION=$(shell git log -1 --pretty=format:"%H")
 DOCKER_REGISTRY?=sibiataporeto
 DOCKER_IMAGE_NAME?=$(PROJECT_NAME)
 DOCKER_IMAGE_TAG?=$(BUILD_NUMBER)

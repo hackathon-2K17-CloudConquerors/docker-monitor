@@ -22,26 +22,27 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func banner(version, revision string) {
+func banner() {
 	fmt.Printf(`
 
-         _                                                                                 _    _
-        | |   ____    ____   _   _    ___    __ ___           _ _______    ____   _____   (_)  | |__    ____    __ ___
-     __ | |  / __ \  /  __| / | / /  / __ \ |  '___|         | /__  __ \  / __ \  | __ \  | |  | ___|  / __ \  |  '___|
-    / _|| | / /  \ | | /    | |/ /  |  __ / | |       ___    | | | | | | / /  \ | | | | | | |  | |    / /  \ | | |
-   | |_ | | | \__/ | | \__  |  _ \  | \___  | |      |___|   | | | | | | | \__/ | | | | | | |  | |__  | \__/ | | |
-   \_____ /  \____/  \____| \_| \_\  \____| |_|              |_| |_| |_|  \____/  |_| |_| |_|  \____|  \____/  |_|
+         _                                                                                  _    _
+        | |   ____    _____   _   _    ___    __ ___           _ _______    ____   _____   (_)  | |__    ____    __ ___
+     __ | |  / __ \  /  ___| / | / /  / __ \ |  '___|         | /__  __ \  / __ \  | __ \  | |  | ___|  / __ \  |  '___|
+    / _|| | / /  \ | | |     | |/ /  |  __ / | |       ___    | | | | | | / /  \ | | | | | | |  | |    / /  \ | | |
+   | |_ | | | \__/ | | |___  |  _ \  | \___  | |      |___|   | | | | | | | \__/ | | | | | | |  | |__  | \__/ | | |
+    \____ /  \____/  \_____| \_| \_\  \____| |_|              |_| |_| |_|  \____/  |_| |_| |_|  \____|  \____/  |_|
 
 _______________________________________________________________
-             %s - %s
+
                                           🚀  by CloudConquerors
 
-`, version, revision)
+`)
 }
 
 func main() {
 
-	banner("hi", "hi")
+	banner()
+	// LoadConfiguration loads the config from flags or env variables
 	cfg, err := configuration.LoadConfiguration()
 	if err != nil {
 		log.Fatal("Error parsing configuration", err)
@@ -54,26 +55,45 @@ func main() {
 
 	zap.L().Debug("Config used", zap.Any("Config", cfg))
 
-	influxInstance, err := influxdblib.NewDBConnection(cfg.InfluxUsername, cfg.InfluxPassword, cfg.InfluxURL, cfg.InfluxDBName, cfg.DBSkipTLS)
+	// Create a new DB instance
+	influxInstance, err := influxdblib.NewDBConnection(
+		cfg.InfluxUsername,
+		cfg.InfluxPassword,
+		cfg.InfluxURL,
+		cfg.InfluxDBName,
+		cfg.DBSkipTLS,
+	)
 	if err != nil {
 		log.Fatal("Error initiating connection to DB", err)
 	}
-	// Start worker
+	// Start influx worker
 	influxInstance.Start()
 
+	// Create docker client
 	dockerClient, err := initDockerClient(constants.DefaultDockerSocketType, constants.DefaultDockerSocket)
 	if err != nil {
 		log.Fatal("Error initializing docker client", err)
 	}
 
-	monitorInstance := monitor.NewMonitor(cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPServer, influxInstance, cfg.InfluxDBName, cfg.SMTPUser, cfg.RecipientAddress)
+	// Create new monitor instance
+	monitorInstance := monitor.NewMonitor(
+		cfg.SMTPUser,
+		cfg.SMTPPassword,
+		cfg.SMTPServer,
+		dockerClient,
+		influxInstance,
+		cfg.InfluxDBName,
+		cfg.RecipientAddress,
+	)
 
+	// Start looking for containers and add to DB
 	go pollNginxContainer(influxInstance, dockerClient, cfg.PollInterval, monitorInstance)
 	go pollHttpdContainer(influxInstance, dockerClient, cfg.PollInterval, monitorInstance)
 	go pollPostgresContainer(influxInstance, dockerClient, cfg.PollInterval, monitorInstance)
 
+	// Start server
 	go func() {
-		err := startMonitorServer(cfg.ListenAddress, monitorInstance)
+		err := startMonitorServer(cfg.ListenAddress, monitorInstance, cfg.MonitorInterval)
 		if err != nil {
 			zap.L().Fatal("Error: Connecting to GraphServer", zap.Error(err))
 		}
@@ -88,7 +108,7 @@ func main() {
 }
 
 func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstance *dockerClient.Client, interval int, email monitor.MonitorManipulator) {
-	for range time.Tick(time.Second * time.Duration(10)) {
+	for range time.Tick(time.Second * time.Duration(interval)) {
 		var isNginxRunning bool
 		containers, err := dockerClientInstance.ContainerList(context.Background(), types.ContainerListOptions{})
 		if err != nil {
@@ -99,16 +119,24 @@ func pollNginxContainer(influxInstance *influxdblib.Influxdb, dockerClientInstan
 			if strings.Contains(container.Image, influxdblib.NGINX) {
 				isNginxRunning = true
 				influxInstance.CollectContainerEvent(&influxdblib.Container{
-					ContainerName: influxdblib.NGINX,
-					ContainerID:   container.ID[:10],
-					ImageName:     container.Image,
-					Status:        influxdblib.ContainerStart,
+					ContainerName:    influxdblib.NGINX,
+					ContainerID:      container.ID[:10],
+					ImageName:        container.Image,
+					ContainerState:   container.State,
+					ContainerStatus:  container.Status,
+					ContainerCreated: container.Created,
+					ContainerNetwork: container.HostConfig.NetworkMode,
+					Status:           influxdblib.ContainerStart,
 				})
 			} else {
 				influxInstance.CollectContainerEvent(&influxdblib.Container{
-					ContainerID: container.ID[:10],
-					ImageName:   container.Image,
-					Status:      influxdblib.ContainerStart,
+					ContainerID:      container.ID[:10],
+					ImageName:        container.Image,
+					ContainerState:   container.State,
+					ContainerStatus:  container.Status,
+					ContainerCreated: container.Created,
+					ContainerNetwork: container.HostConfig.NetworkMode,
+					Status:           influxdblib.ContainerStart,
 				})
 			}
 		}
@@ -135,16 +163,24 @@ func pollHttpdContainer(influxInstance *influxdblib.Influxdb, dockerClientInstan
 			if strings.Contains(container.Image, influxdblib.HTTPD) {
 				isHttpdRunning = true
 				influxInstance.CollectContainerEvent(&influxdblib.Container{
-					ContainerName: influxdblib.HTTPD,
-					ContainerID:   container.ID[:10],
-					ImageName:     container.Image,
-					Status:        influxdblib.ContainerStart,
+					ContainerName:    influxdblib.HTTPD,
+					ContainerID:      container.ID[:10],
+					ImageName:        container.Image,
+					ContainerState:   container.State,
+					ContainerStatus:  container.Status,
+					ContainerCreated: container.Created,
+					ContainerNetwork: container.HostConfig.NetworkMode,
+					Status:           influxdblib.ContainerStart,
 				})
 			} else {
 				influxInstance.CollectContainerEvent(&influxdblib.Container{
-					ContainerID: container.ID[:10],
-					ImageName:   container.Image,
-					Status:      influxdblib.ContainerStart,
+					ContainerID:      container.ID[:10],
+					ImageName:        container.Image,
+					ContainerState:   container.State,
+					ContainerStatus:  container.Status,
+					ContainerCreated: container.Created,
+					ContainerNetwork: container.HostConfig.NetworkMode,
+					Status:           influxdblib.ContainerStart,
 				})
 			}
 		}
@@ -171,16 +207,24 @@ func pollPostgresContainer(influxInstance *influxdblib.Influxdb, dockerClientIns
 			if strings.Contains(container.Image, influxdblib.POSTGRES) {
 				isPostgresRunning = true
 				influxInstance.CollectContainerEvent(&influxdblib.Container{
-					ContainerName: influxdblib.POSTGRES,
-					ContainerID:   container.ID[:10],
-					ImageName:     container.Image,
-					Status:        influxdblib.ContainerStart,
+					ContainerName:    influxdblib.POSTGRES,
+					ContainerID:      container.ID[:10],
+					ImageName:        container.Image,
+					ContainerState:   container.State,
+					ContainerStatus:  container.Status,
+					ContainerCreated: container.Created,
+					ContainerNetwork: container.HostConfig.NetworkMode,
+					Status:           influxdblib.ContainerStart,
 				})
 			} else {
 				influxInstance.CollectContainerEvent(&influxdblib.Container{
-					ContainerID: container.ID[:10],
-					ImageName:   container.Image,
-					Status:      influxdblib.ContainerStart,
+					ContainerID:      container.ID[:10],
+					ImageName:        container.Image,
+					ContainerState:   container.State,
+					ContainerStatus:  container.Status,
+					ContainerCreated: container.Created,
+					ContainerNetwork: container.HostConfig.NetworkMode,
+					Status:           influxdblib.ContainerStart,
 				})
 			}
 		}
@@ -195,12 +239,13 @@ func pollPostgresContainer(influxInstance *influxdblib.Influxdb, dockerClientIns
 	return
 }
 
-func startMonitorServer(listenAddress string, monitor monitor.MonitorManipulator) error {
+func startMonitorServer(listenAddress string, monitor monitor.MonitorManipulator, interval int) error {
 	mux := http.NewServeMux()
 
-	go monitor.StartMonitor(10)
+	// start processing emails
+	go monitor.StartMonitor(interval)
 
-	//mux.HandleFunc("/", monitor.StartContainer)
+	mux.HandleFunc("/monitor", monitor.StartContainer)
 
 	handler := cors.Default().Handler(mux)
 
@@ -214,7 +259,7 @@ func startMonitorServer(listenAddress string, monitor monitor.MonitorManipulator
 }
 
 func initDockerClient(socketType string, socketAddress string) (*dockerClient.Client, error) {
-
+	zap.L().Info("Initializing Docker Client", zap.Any("socket", socketType))
 	var socket string
 
 	switch socketType {
