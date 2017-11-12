@@ -3,9 +3,11 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/http"
 	"time"
 
+	"github.com/docker-monitor/frontend"
 	"github.com/docker-monitor/influxdblib"
 	"github.com/docker/docker/api/types"
 	dockerClient "github.com/docker/docker/client"
@@ -24,17 +26,34 @@ func NewMonitor(smtpUser string, smtpPass string, smtpServer string, docker *doc
 	}
 }
 
-// StartContainer is a server function from a web service
-func (m *Monitor) StartContainer(w http.ResponseWriter, r *http.Request) {
+// ShowWebpage is a server function for an html page
+func (m *Monitor) ShowWebpage(w http.ResponseWriter, r *http.Request) {
+
+	htmlData, err := template.New("graph").Parse(frontend.Html)
+	if err != nil {
+		http.Error(w, err.Error(), 0)
+	}
+	var result string
 
 	containerID := r.FormValue("containerid")
 	zap.L().Info("Starting Container", zap.Any("container", containerID))
-	if err := m.docker.ContainerStart(context.Background(), containerID, types.ContainerStartOptions{}); err != nil {
-		http.Error(w, err.Error(), 3)
+	if err = m.docker.ContainerStart(context.Background(), containerID, types.ContainerStartOptions{}); err != nil {
+		result = err.Error()
+	} else {
+		result = "Successfully started container " + containerID
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintln(w, "Successfully started container "+containerID)
+	data := struct {
+		Result string
+	}{
+		Result: result,
+	}
+
+	err = htmlData.Execute(w, data)
+	if err != nil {
+		http.Error(w, err.Error(), 1)
+	}
+	w.Header().Set("Content-Type", "text/html")
 }
 
 // StartMonitor starts goroutines to qurey DB and to listen for containers

@@ -38,7 +38,7 @@ func (e *email) sendEmail(content *emailcontent) error {
 	day := content.time.Month().String() + " " + strconv.Itoa(content.time.Day()) + ", " + strconv.Itoa(content.time.Year())
 
 	e.email.Plain().Set(
-		"Application " + content.container.ContainerName + " went down at " + time + " on " + day + " (UTC). Please investigate\n\n" +
+		"Application " + content.container.ContainerName + " went down at " + time + " on " + day + " (UTC). Please investigate.\n\n" +
 			"DETAILS: \n " +
 			"ContainerName: " + content.container.ContainerName + "\n " +
 			"ContainerID: " + content.container.ContainerID + " \n " +

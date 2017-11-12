@@ -245,7 +245,7 @@ func startMonitorServer(listenAddress string, monitor monitor.MonitorManipulator
 	// start processing emails
 	go monitor.StartMonitor(interval)
 
-	mux.HandleFunc("/monitor", monitor.StartContainer)
+	mux.HandleFunc("/monitor", monitor.ShowWebpage)
 
 	handler := cors.Default().Handler(mux)
 
