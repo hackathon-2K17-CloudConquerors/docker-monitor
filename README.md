@@ -13,10 +13,7 @@ Docker events reporting microservice
 
 ----
 
-## Getting started with Trireme-Kubernetes
-
-Trireme-Kubernetes is focused on being simple and Straightforward to deploy.
-For any serious deployment, the extensive deployment guide should be followed
+## Getting started with docker-monitor
 
 1) Checkout the deployment files:
 ```
