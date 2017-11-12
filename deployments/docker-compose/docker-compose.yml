@@ -3,6 +3,8 @@ version: '2'
 services:
   docker_monitor:
     image: sibiataporeto/docker-monitor:latest
+    env_file:
+      - config.env
     ports:
       - "8088:8088"
     privileged: true

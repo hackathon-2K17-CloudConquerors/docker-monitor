@@ -1,5 +1,5 @@
 # Docker-monitor
-Docker events reporting microservice
+Docker-monitor is a service which alerts user (email) when any container (nginx, postgres and httpd in this case) goes down in the cluster.
 
 ----
 
@@ -7,7 +7,7 @@ Docker events reporting microservice
 
 ![docker-monitor architecture](documentation/architecture.png)
 
-* docker-monitor: The main service that polls running containers (nginx, postgres and httpd in this case), pushes data to influx and listens for request from client
+* docker-monitor: The main service that polls running containers, pushes data to influx and listens for request from client
 
 * influxdb: Time-series database used to store metrics of the containers
 
@@ -23,7 +23,7 @@ cd docker-monitor/deployments/docker-compose
 
 2) Create the configuration file: (keeping everything by default should be fine)
 ```
-
+modify entries in config.env
 ```
 
 3) Start the containers:
@@ -46,7 +46,7 @@ make package
 
 3) Use docker registry (optional)
 ```
-Change BUILD_NUMBER and DOCKER_REGISTRY? in the Makefile
+Change BUILD_NUMBER and DOCKER_REGISTRY in the Makefile
 make docker_push
 ```
 
