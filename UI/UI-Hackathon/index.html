@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title> Cloud Conquerors </title>
+    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Oxygen" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Merriweather" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css" type="text/css">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="text-center anim-typewriter"> Docker-Monitor </h1>
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-2">
+                <button type="button" class="btn btn-outline-primary"> Start Container </button>
+            </div>
+            <div class="col-sm-12 col-md-12 col-lg-8">
+                <form>
+                    <div class="form-group">
+                        <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <br>
+
+        <div class="row">
+            <div class="col-sm-12 col-md-12 col-lg-2">
+                <button type="button" class="btn btn-outline-success"> Show Logs </button>
+            </div>
+
+            <div class="col-sm-12 col-md-12 col-lg-8">
+                <table class="table table-striped table-responsive-sm">
+                    <thead>
+                    <tr>
+                        <th scope="col"> Container Name </th>
+                        <th scope="col"> Container ID# </th>
+                        <th scope="col"> Current Status </th>
+                        <th scope="col"> Link To Start Container</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <th scope="row"> httpd </th>
+                        <td> 371043dfa5 </td>
+                        <td> start </td>
+                        <td> <a href="http://localhost:8088/monitor?containerid=371043dfa5"> http://localhost:8088/monitor?containerid=371043dfa5 </ahref> </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> postgres </th>
+                        <td> d57e409bb5 </td>
+                        <td> start </td>
+                        <td> <a href="http://localhost:8088/monitor?containerid=d57e409bb5"> http://localhost:8088/monitor?containerid=d57e409bb5  </a> </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> nginx </th>
+                        <td> 947a9ee55e </td>
+                        <td> start </td>
+                        <td> <a href="http://localhost:8088/monitor?containerid=947a9ee55e"> http://localhost:8088/monitor?containerid=947a9ee55e </a> </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+
+</body>
+</html>
