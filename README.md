@@ -15,6 +15,8 @@ Docker-monitor is a service which alerts user (email) when any container (nginx,
 
 ## Getting started with docker-monitor
 
+>> NOTE: To install dependecies automatically, do a glide install
+
 1) Checkout the deployment files:
 ```
 git clone https://github.com/hackathon-2K17-CloudConquerors/docker-monitor.git
