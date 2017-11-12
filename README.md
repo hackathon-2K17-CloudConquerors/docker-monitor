@@ -1,11 +1,11 @@
-# docker-monitor
+# Docker-monitor
 Docker events reporting microservice
 
 ----
 
-## docker-monitor architecture
+## Docker-monitor architecture
 
-<img>
+![docker-monitor architecture](documentation/architecture.png)
 
 * docker-monitor: The main service that polls running containers (nginx, postgres and httpd in this case), pushes data to influx and listens for request from client
 
