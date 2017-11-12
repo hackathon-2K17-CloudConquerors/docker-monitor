@@ -39,9 +39,12 @@ docker-compose up
 
 ## To Build the project locally
 
+>> NOTE: To install dependecies automatically, do a glide install
+
 1) Checkout to the root directory:
 ```
 cd docker-monitor
+glide install
 ```
 
 2) Package the project
