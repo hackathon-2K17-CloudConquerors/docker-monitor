@@ -3,6 +3,8 @@ version: '2'
 services:
   docker_monitor:
     build: ../../docker
+    ports:
+      - "8088:8088"
     privileged: true
     depends_on:
       - "influxdb"

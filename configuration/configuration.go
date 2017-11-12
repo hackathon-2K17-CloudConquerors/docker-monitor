@@ -39,7 +39,7 @@ func usage() {
 // LoadConfiguration will load the configuration struct
 func LoadConfiguration() (*Configuration, error) {
 	flag.Usage = usage
-	flag.String("ListenAddress", "", "Server Address [Default: 8080]")
+	flag.String("ListenAddress", "8088", "Server Address [Default: 8088]")
 	flag.String("LogLevel", "", "Log level. Default to info (trace//debug//info//warn//error//fatal)")
 	flag.String("LogFormat", "", "Log Format. Default to human")
 
@@ -49,8 +49,8 @@ func LoadConfiguration() (*Configuration, error) {
 	flag.String("InfluxURL", "", "URI to connect to DB [default: http://influxdb:8086]")
 	flag.Bool("DBSkipTLS", true, "Is valid TLS required for the DB server ? [default: true]")
 
-	flag.Int("PollInterval", 5, "Time interval to poll containers [default: 5m]")
-	flag.Int("MonitorInterval", 5, "Time interval to watch for stopped containers [default: 5m]")
+	flag.Int("PollInterval", 30, "Time interval to poll containers [default: 5m]")
+	flag.Int("MonitorInterval", 10, "Time interval to watch for stopped containers [default: 5m]")
 
 	flag.String("SMTPUser", "", "Username to connect to SMTP server [default: sibi]")
 	flag.String("SMTPPassword", "", "Password to connect to SMTP server [default: sibi]")
@@ -58,7 +58,7 @@ func LoadConfiguration() (*Configuration, error) {
 	flag.String("RecipientAddress", "", "email of the receiver")
 
 	// Setting up default configuration
-	viper.SetDefault("ListenAddress", ":8080")
+	viper.SetDefault("ListenAddress", ":8088")
 	viper.SetDefault("LogLevel", "info")
 	viper.SetDefault("LogFormat", "human")
 
@@ -68,8 +68,8 @@ func LoadConfiguration() (*Configuration, error) {
 	viper.SetDefault("InfluxURL", "http://influxdb:8086")
 	viper.SetDefault("DBSkipTLS", true)
 
-	viper.SetDefault("PollInterval", 5)
-	viper.SetDefault("MonitorInterval", 5)
+	viper.SetDefault("PollInterval", 30)
+	viper.SetDefault("MonitorInterval", 10)
 
 	viper.SetDefault("SMTPUser", "cloudconquerors@gmail.com")
 	viper.SetDefault("SMTPPassword", "sibicramesh")

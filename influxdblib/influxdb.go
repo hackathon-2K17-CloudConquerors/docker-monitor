@@ -2,23 +2,12 @@ package influxdblib
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/influxdata/influxdb/client/v2"
 )
-
-//Influxdb inplements a DataAdder interface for influxDB
-type Influxdb struct {
-	httpClient client.Client
-	database   string
-
-	stopWorker chan struct{}
-	worker     *worker
-	sync.Mutex
-}
 
 //DataAdder interface has all the methods required to interact with influxdb api
 type DataAdder interface {

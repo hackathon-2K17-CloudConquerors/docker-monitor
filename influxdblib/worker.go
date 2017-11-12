@@ -6,19 +6,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// A worker manages the workload for the InfluxDB collector
-type worker struct {
-	events chan *workerEvent
-	stop   chan struct{}
-	db     DataAdder
-}
-
-// a workerEvent is an event that the worker need to process
-type workerEvent struct {
-	containerName string
-	container     *Container
-}
-
 func newWorker(stop chan struct{}, db DataAdder) *worker {
 	return &worker{
 		events: make(chan *workerEvent, 500),
@@ -39,7 +26,7 @@ func (w *worker) addEvent(wevent *workerEvent) {
 // startWorker start processing the event for this worker.
 // Blocking... Use go.
 func (w *worker) startWorker() {
-	zap.L().Info("Starting InfluxDBworker")
+
 	for {
 		select {
 		case event := <-w.events:
@@ -92,8 +79,12 @@ func (w *worker) doCollectContainerEvent(containerType string, container *Contai
 	return w.db.AddData(map[string]string{
 		"ContainerName": containerName,
 	}, map[string]interface{}{
-		"ContainerID": container.ContainerID,
-		"ImageName":   container.ImageName,
-		"Status":      container.Status,
+		"ContainerID":      container.ContainerID,
+		"ImageName":        container.ImageName,
+		"Status":           container.Status,
+		"ContainerState":   container.ContainerState,
+		"ContainerStatus":  container.ContainerStatus,
+		"ContainerCreated": container.ContainerCreated,
+		"ContainerNetwork": container.ContainerNetwork,
 	})
 }
