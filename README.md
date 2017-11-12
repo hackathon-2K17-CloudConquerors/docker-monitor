@@ -46,7 +46,8 @@ make package
 
 3) Use docker registry (optional)
 ```
-Change BUILD_NUMBER and DOCKER_REGISTRY? in the Makefile and run make docker_push
+Change BUILD_NUMBER and DOCKER_REGISTRY? in the Makefile
+make docker_push
 ```
 
 ----
