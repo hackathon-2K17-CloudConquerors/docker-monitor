@@ -21,7 +21,7 @@ git clone https://github.com/hackathon-2K17-CloudConquerors/docker-monitor.git
 cd docker-monitor/deployments/docker-compose
 ```
 
-2) create the configuration file: (keeping everything by default should be fine)
+2) Create the configuration file: (keeping everything by default should be fine)
 ```
 
 ```
@@ -30,6 +30,26 @@ cd docker-monitor/deployments/docker-compose
 ```
 docker-compose up
 ```
+----
+
+## To Build the project locally
+
+1) Checkout to the root directory:
+```
+cd docker-monitor
+```
+
+2) Package the project
+```
+make package
+```
+
+3) Use docker registry (optional)
+```
+Change BUILD_NUMBER and DOCKER_REGISTRY? in the Makefile and run make docker_push
+```
+
+----
 
 ## Prerequisites
 
