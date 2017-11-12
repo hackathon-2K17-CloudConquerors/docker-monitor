@@ -3,6 +3,11 @@ Docker-monitor is a service which alerts user (email) when any container (nginx,
 
 ----
 
+### Demo https://www.youtube.com/watch?v=GpWLrkKTz9s
+### Documentation https://docs.google.com/presentation/d/14ZiBJqbEXvyZYkcbMcoAvYOV6zUl8b31Cc4FjIY7dj8/edit?usp=sharing
+
+----
+
 ## Docker-monitor architecture
 
 ![docker-monitor architecture](documentation/architecture.png)
