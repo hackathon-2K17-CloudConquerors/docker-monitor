@@ -1,0 +1,16 @@
+package: github.com/docker-monitor
+import:
+- package: github.com/docker/docker
+  subpackages:
+  - api/types
+  - client
+- package: github.com/domodwyer/mailyak
+- package: github.com/influxdata/influxdb
+  subpackages:
+  - client/v2
+- package: github.com/rs/cors
+- package: github.com/spf13/pflag
+- package: github.com/spf13/viper
+- package: go.uber.org/zap
+  subpackages:
+  - zapcore

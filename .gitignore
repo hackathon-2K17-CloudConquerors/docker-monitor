@@ -1,1 +1,3 @@
 docker/docker-monitor
+vendor
+glide.lock
